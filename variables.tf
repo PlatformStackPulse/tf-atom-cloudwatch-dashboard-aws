@@ -1,7 +1,8 @@
-# -----------------------------------------------------------------------------
-# Module-Specific Variables
-#
-# Note: Standard labeling variables (enabled, namespace, tenant, environment,
-# stage, name, delimiter, attributes, tags, label_order, etc.) are provided
-# by context.tf via the tf-label module.
-# -----------------------------------------------------------------------------
+variable "dashboard_body" {
+  description = "JSON body of the dashboard"
+  type        = string
+  validation {
+    condition     = length(var.dashboard_body) > 0
+    error_message = "dashboard_body must not be empty."
+  }
+}
