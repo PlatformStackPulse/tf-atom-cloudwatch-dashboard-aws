@@ -1,42 +1,32 @@
-# Unit Tests for tf-atom-cloudwatch-dashboard-aws
-#
-# These tests use a mock AWS provider — no real AWS calls are made and no
-# credentials are required. They assert only on plan-KNOWN values (the tf-label
-# `enabled` flag and the generated `id` string), never on computed ARNs/IDs
-# which are unknown under a mock provider.
-#
-# Run with:         terraform test -test-directory=tests/unit
-# Run verbose:      terraform test -test-directory=tests/unit -verbose
-
 mock_provider "aws" {}
 
-# Standard tf-label inputs shared by every run block.
+# Standard tf-label inputs shared by every run block below.
 variables {
-  namespace = "eg"
-  stage     = "test"
-  name      = "thing"
+  namespace      = "eg"
+  stage          = "test"
+  name           = "thing"
+  dashboard_body = "{\"widgets\":[]}"
 }
 
-# ---------------------------------------------------------------------------
-# Test: module is enabled by default and produces the expected label id
-# ---------------------------------------------------------------------------
 run "creates_when_enabled" {
   command = plan
 
   assert {
     condition     = output.enabled == true
-    error_message = "Module should report enabled = true when enabled is not overridden."
+    error_message = "Module should report enabled = true when enabled is left at its default."
   }
 
   assert {
-    condition     = module.this.id == "eg-test-thing"
-    error_message = "tf-label id should be 'eg-test-thing' for namespace=eg, stage=test, name=thing."
+    condition     = length(aws_cloudwatch_dashboard.this) == 1
+    error_message = "Exactly one aws_cloudwatch_dashboard should be planned when enabled."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_dashboard.this[0].dashboard_name == "eg-test-thing"
+    error_message = "dashboard_name should default to the tf-label id."
   }
 }
 
-# ---------------------------------------------------------------------------
-# Test: when disabled, the module reports enabled = false
-# ---------------------------------------------------------------------------
 run "disabled_creates_nothing" {
   command = plan
 
@@ -46,6 +36,16 @@ run "disabled_creates_nothing" {
 
   assert {
     condition     = output.enabled == false
-    error_message = "Module should report enabled = false when enabled = false."
+    error_message = "Module should report enabled = false when enabled = false is passed."
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_dashboard.this) == 0
+    error_message = "No aws_cloudwatch_dashboard should be planned when disabled."
+  }
+
+  assert {
+    condition     = output.id == null
+    error_message = "id output should be null when the module is disabled."
   }
 }
